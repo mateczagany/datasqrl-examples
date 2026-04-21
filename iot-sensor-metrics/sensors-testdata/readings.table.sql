@@ -6,5 +6,6 @@ CREATE TABLE Readings (
 ) WITH (
       'format' = 'flexible-json',
       'path' = '${DATA_PATH}/readings.jsonl',
-      'connector' = 'filesystem'
+      'connector' = 'filesystem',
+      'source.monitor-interval' = '10 sec'
 );

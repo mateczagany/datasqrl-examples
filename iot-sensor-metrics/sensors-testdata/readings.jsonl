@@ -17,3 +17,7 @@
 {"sensorid": 5, "temperature": 79.5, "event_time": "2024-10-16T23:15:32.789Z"}
 {"sensorid": 5, "temperature": 81.1, "event_time": "2024-10-16T23:15:33.012Z"}
 {"sensorid": 5, "temperature": 80.7, "event_time": "2024-10-16T23:15:33.345Z"}
+{"sensorid": 1, "temperature": 102.2, "event_time": "2024-10-16T22:53:45.266Z"}
+{"sensorid": 1, "temperature": 103.2, "event_time": "2024-10-16T22:53:46.266Z"}
+{"sensorid": 1, "temperature": 104.2, "event_time": "2024-10-16T22:53:47.266Z"}
+{"sensorid": 1, "temperature": 105.2, "event_time": "2024-10-16T22:53:48.266Z"}
