@@ -1,0 +1,93 @@
+IMPORT connectors.sources-{{environment}} AS sources;
+
+_ValidOrders := SELECT * FROM sources.Orders WHERE order_id <> '';
+
+/* Hourly order stats per region.
+   DATA SKEW: us-east has 50% more records than each other region,
+   so the subtask handling us-east processes disproportionately more data. */
+_RegionStatsStream := SELECT
+    region,
+    window_start,
+    window_end,
+    window_time,
+    COUNT(*) AS order_count,
+    SUM(amount) AS total_revenue,
+    AVG(amount) AS avg_order_value,
+    COUNT(DISTINCT store_id) AS active_stores,
+    COUNT(DISTINCT customer_id) AS unique_customers
+FROM TABLE(
+    TUMBLE(
+        TABLE _ValidOrders,
+        DESCRIPTOR(event_time),
+        INTERVAL '1' HOUR
+    )
+)
+GROUP BY region, window_start, window_end, window_time;
+
+/*+query_by_all(region) */
+RegionStats := SELECT * FROM _RegionStatsStream ORDER BY window_time DESC;
+
+/* Hourly order stats per store within each region.
+   Skew cascades: us-east has 3 stores vs 2 for other regions. */
+_StoreStatsStream := SELECT
+    region,
+    store_id,
+    window_start,
+    window_end,
+    window_time,
+    COUNT(*) AS order_count,
+    SUM(amount) AS total_revenue,
+    AVG(amount) AS avg_order_value
+FROM TABLE(
+    TUMBLE(
+        TABLE _ValidOrders,
+        DESCRIPTOR(event_time),
+        INTERVAL '1' HOUR
+    )
+)
+GROUP BY region, store_id, window_start, window_end, window_time;
+
+/*+query_by_all(store_id) */
+StoreStats := SELECT * FROM _StoreStatsStream ORDER BY window_time DESC, store_id ASC;
+
+/* Category breakdown per region - another skewed GROUP BY */
+_CategoryByRegionStream := SELECT
+    region,
+    category,
+    window_start,
+    window_end,
+    window_time,
+    COUNT(*) AS order_count,
+    SUM(amount) AS total_revenue
+FROM TABLE(
+    TUMBLE(
+        TABLE _ValidOrders,
+        DESCRIPTOR(event_time),
+        INTERVAL '1' HOUR
+    )
+)
+GROUP BY region, category, window_start, window_end, window_time;
+
+/*+query_by_all(region) */
+CategoryByRegion := SELECT * FROM _CategoryByRegionStream ORDER BY window_time DESC, category ASC;
+
+/* Alert on high-value orders */
+HighValueAlert := SUBSCRIBE SELECT * FROM _ValidOrders WHERE amount > 400;
+EXPORT HighValueAlert TO logger.HighValueOrder;
+
+/* ==== TEST CASES ==== */
+
+/*+test */
+RegionOrderCountTest := SELECT region, SUM(order_count) AS total_orders
+    FROM RegionStats
+    GROUP BY region
+    ORDER BY region ASC;
+
+/*+test */
+StoreOrderCountTest := SELECT region, store_id, SUM(order_count) AS total_orders
+    FROM StoreStats
+    GROUP BY region, store_id
+    ORDER BY region ASC, store_id ASC;
+
+/*+test */
+HighValueAlertTest := SELECT COUNT(*) AS alert_count FROM HighValueAlert;

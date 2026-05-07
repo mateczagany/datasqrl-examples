@@ -1,0 +1,5 @@
+CREATE TABLE Orders (
+    WATERMARK FOR event_time AS event_time - INTERVAL '1' SECOND
+) WITH (
+    'source.monitor-interval' = '10 sec'
+) LIKE `test-data/orders.jsonl`;
