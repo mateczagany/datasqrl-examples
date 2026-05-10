@@ -5,11 +5,26 @@
     "main": "aggregation-query-test.sqrl"
   },
   "engines": {
-    "flink" : {
-      "config" : {
-        "table.exec.source.idle-timeout": "1 s",
-        "execution.checkpointing.interval": "1 min"
+    "flink": {
+      "config": {
+        "execution.runtime-mode": "STREAMING",
+        "security.delegation.tokens.enabled": false,
+        "state.backend.type": "rocksdb",
+        "table.exec.source.idle-timeout": "10 s",
+        "table.exec.async-lookup.buffer-capacity": 20,
+        "table.exec.async-lookup.timeout": "40 min",
+        "table.exec.async-lookup.output-mode": "ALLOW_UNORDERED",
+        "table.exec.sink.upsert-materialize": "NONE",
+        "taskmanager.memory.task.off-heap.size": "4G"
+      },
+      "deployment": {
+        "jobmanager-size": "small",
+        "taskmanager-size": "large.mem-headroom",
+        "taskmanager-count": 2
       }
+    },
+    "duckdb": {
+      "url": "jdbc:duckdb:"
     }
   },
   "connectors": {
